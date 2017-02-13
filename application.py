@@ -15,6 +15,8 @@ UPLOAD_FOLDER = "/home/xusha/dev/test"
 FINISHED = list()
 RUNNING = dict()
 
+session = dict()
+
 
 def files():
     task = GreenTask()
@@ -59,6 +61,16 @@ def upload_file():
     if request.method == 'GET':
         return render_template('upload_file.html')
     if request.method == 'POST':
+        data_file = request.files['file']
+        print(dir(data_file))
+        filename = secure_filename(data_file.filename)
+        task = GreenTask()
+        session[task.id] = {'progress': 0}
+
+        task.save_file_by_chunks(data_file, UPLOAD_FOLDER, filename, session, task.id)
+        return redirect(url_for('status', task_id=task.id))
+
+        """
         if 'file' in request.files:
             data_file = request.files['file']
             print data_file.filename
@@ -67,6 +79,7 @@ def upload_file():
                 task = GreenTask()
                 task.blocking_save_file(data_file, UPLOAD_FOLDER, filename)
                 return redirect(url_for('status', task_id=task.id))
+        """
 
 
 def status(task_id):
@@ -75,7 +88,7 @@ def status(task_id):
 
 
 def upload_file_progress(task_id):
-    return jsonify({'status': randint(0,100)})
+    return jsonify({'status': session[task_id]['progress']})
 
 
 def create_app():

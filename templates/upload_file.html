@@ -4,31 +4,6 @@
     <meta charset="UTF-8">
     <title></title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.css') }}">
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
-    <script>
-        $(function() {
-            var bar = $('#progress_bar');
-            var percent = $('#task_progress');
-            var status =  $('#task_message');
-
-            $('form').ajaxForm({
-                beforeSend: function() {
-                    status.empty();
-                    var percentVal = '0%';
-                    bar.width(percentVal);
-                    percent.html(percentVal);
-                },
-                uploadProgress: function(event, position, total, percentComplete) {
-                    var percentVal = percentComplete + '%';
-                    bar.width(percentVal);
-                    percent.html(percentVal);
-                },
-                complete: function(xhr) {
-                    status.html(xhr.responseText);
-                }
-            });
-        });
-    </script>
 </head>
 <body>
 <div class="jumbotron">
@@ -53,18 +28,6 @@
             </form>
         </div>
     </div>
-    <div class="row">
-    <div class="col-md-4 col-md-offset-4 bg-info" style="border-radius: 5px; padding-bottom: 10px;">
-            <div style="text-align: center;">
-                <h3 id="task_title">Upload</h3>
-            <div id='progress_div' class="progress progress-striped active">
-                <div id='progress_bar' class="progress-bar"  role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 30%"></div>
-            </div>
-            <strong id="task_progress">30%</strong><br/>
-            <strong id="task_message">In progress</strong>
-        </div>
-        </div>
-        </div>
 </div>
 </body>
 </html>
