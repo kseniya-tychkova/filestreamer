@@ -3,14 +3,17 @@ import gevent.pool
 import signal
 import os
 import urllib
-from flask import Flask, abort, make_response, render_template, request, Response
+from flask import Flask, abort, redirect, render_template, request, Response, session, url_for, jsonify
 from werkzeug.utils import secure_filename
 from uuid import uuid4
+from random import randint
 
 from task import GreenTask
 
 
 UPLOAD_FOLDER = "/home/xusha/dev/test"
+FINISHED = list()
+RUNNING = dict()
 
 
 def files():
@@ -56,35 +59,33 @@ def upload_file():
     if request.method == 'GET':
         return render_template('upload_file.html')
     if request.method == 'POST':
-        print request
         if 'file' in request.files:
             data_file = request.files['file']
             print data_file.filename
             if data_file.filename > '':
-                session = uuid4()
-                print session
                 filename = secure_filename(data_file.filename)
                 task = GreenTask()
-                task.local.session = session
                 task.blocking_save_file(data_file, UPLOAD_FOLDER, filename)
-                return render_template('upload_file.html')
-                #return Response()
-                #return render_template('upload_file_progress.html', session=session)
+                return redirect(url_for('status', task_id=task.id))
 
 
-def upload_file_progress():
+def status(task_id):
     if request.method == 'GET':
-        task = GreenTask()
-        return render_template('status.html', id=task.local.session)
+        return render_template('status.html', task_id=task_id)
 
+
+def upload_file_progress(task_id):
+    return jsonify({'status': randint(0,100)})
 
 
 def create_app():
     app = Flask(__name__)
+    app.secret_key = "F12Zr47j\3yX R~X@H!jmM]Lwf/,?KT"
     app.add_url_rule('/', 'files', files)
     app.add_url_rule('/download/<filename>', 'get_file', get_file)
     app.add_url_rule('/upload', 'upload_file', upload_file, methods=['GET', 'POST'])
-    app.add_url_rule('/status', 'upload_file_progress', upload_file_progress)
+    app.add_url_rule('/status/<task_id>', 'status', status)
+    app.add_url_rule('/progress/<task_id>', 'upload_file_progress', upload_file_progress)
     return app
 
 

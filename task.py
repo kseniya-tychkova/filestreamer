@@ -7,6 +7,7 @@ import gevent.event
 import gevent.fileobject
 import gevent.local
 import os
+from uuid import uuid4
 
 
 class GreenTaskExecutor(futures.ThreadPoolExecutor):
@@ -35,10 +36,10 @@ class GreenTask(object):
     CHUNK_SIZE = 512 * 1024
 
     def __init__(self):
+        self.id = uuid4()
+        self.status = None
         self._pool = GreenTaskExecutor(
             max_workers=10)
-        self.local = gevent.local.local()
-        self.local.session = None
 
     def blocking_listdir(self, path, fields):
         try:
@@ -82,7 +83,6 @@ class GreenTask(object):
 
     @staticmethod
     def blocking_save_file(file_, path, name):
-        print "TTTTTTTTTTTTTTTTTT"
         file_.save(os.path.join(path, name))
 
     def listdir(self, path, fields):
@@ -111,4 +111,5 @@ class GreenTask(object):
                     return
 
     def save_file(self, file_, path, name):
+        self.status = "60%"
         return self._pool.green_submit(self.blocking_save_file(file_, path, name))
