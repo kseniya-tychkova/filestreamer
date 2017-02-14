@@ -31,6 +31,11 @@ class GreenTaskExecutor(futures.ThreadPoolExecutor):
         self.future_result_to_async_result(async_result, future)
         return async_result
 
+    def green_submit_nowait(self, fn, *args, **kwargs):
+        async_result = gevent.event.AsyncResult()
+        future = self.submit(fn, *args, **kwargs)
+        return async_result
+
 
 class GreenTask(object):
     CHUNK_SIZE = 512 * 1024
@@ -86,44 +91,27 @@ class GreenTask(object):
         file_.save(os.path.join(path, name))
 
     @staticmethod
-    def blocking_save_file_by_chunks(data, path, name, session, task_id):
-        print "TEST"
+    def blocking_save_file_by_chunks(data, path, name, session, task_id, file_length):
         progress = 0
-        chunk_size = 4096
+        chunk_size = 2<<12
 
-        try:
-            data.seek(0, os.SEEK_END)
-            file_length = data.tell()
-        except Exception as e:
-            print e
-
-        print  "cont length: ", file_length
         chunks_count = 1 + file_length / chunk_size
 
         full_path = os.path.join(path, name)
         with open(full_path, "wb") as f:
             while True:
-                print "AAAAAA"
                 chunk = data.stream.read(chunk_size)
                 if len(chunk) == 0:
                     break
 
-                print "before progress"
-                print session[task_id]
                 progress += 1
-                try:
-                    print 100.0 * progress / chunks_count
-                except Exception as e:
-                    print e
                 session[task_id]['progress'] = 100.0 * progress / chunks_count
-                print "before write"
                 f.write(chunk)
                 print(progress)
 
-    def save_file_by_chunks(self, data, path, name, session, task_id):
-        print "EEEE"
+    def save_file_by_chunks(self, data, path, name, session, task_id, file_length):
         return self._pool.green_submit(self.blocking_save_file_by_chunks,
-                                       data, path, name, session, task_id)
+                                              data, path, name, session, task_id, file_length)
 
     def listdir(self, path, fields):
         return self._pool.green_submit(self.blocking_listdir, path, fields).get()

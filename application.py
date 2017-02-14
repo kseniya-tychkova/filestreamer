@@ -59,15 +59,20 @@ def get_file(filename):
 
 def upload_file():
     if request.method == 'GET':
-        return render_template('upload_file.html')
+        task = GreenTask()
+        return render_template('upload_file.html', task_id=task.id)
     if request.method == 'POST':
         data_file = request.files['file']
-        print(dir(data_file))
+        file_size = request.form.get("file-size")
+        task_id = request.form.get("task-id")
         filename = secure_filename(data_file.filename)
+
         task = GreenTask()
+        task.id = task_id
         session[task.id] = {'progress': 0}
 
-        task.save_file_by_chunks(data_file, UPLOAD_FOLDER, filename, session, task.id)
+        task.save_file_by_chunks(data_file, UPLOAD_FOLDER, filename,
+                                 session, task.id, file_size)
         return redirect(url_for('status', task_id=task.id))
 
         """
@@ -88,7 +93,8 @@ def status(task_id):
 
 
 def upload_file_progress(task_id):
-    return jsonify({'status': session[task_id]['progress']})
+    progress = session.get(str(task_id), {}).get('progress', 0)
+    return jsonify({'status': progress})
 
 
 def create_app():
