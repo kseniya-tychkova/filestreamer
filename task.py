@@ -41,7 +41,7 @@ class GreenTask(object):
     CHUNK_SIZE = 512 * 1024
 
     def __init__(self):
-        self.id = uuid4()
+        self.id = str(uuid4())
         self.status = None
         self._pool = GreenTaskExecutor(
             max_workers=10)
@@ -86,32 +86,61 @@ class GreenTask(object):
     def blocking_path_exists(path):
         return os.path.exists(path)
 
-    @staticmethod
-    def blocking_save_file(file_, path, name):
-        file_.save(os.path.join(path, name))
-
-    @staticmethod
-    def blocking_save_file_by_chunks(data, path, name, session, task_id, file_length):
-        progress = 0
+    def blocking_save_file_by_chunks(self, data, session):
         chunk_size = 2<<12
 
-        chunks_count = 1 + file_length / chunk_size
-
-        full_path = os.path.join(path, name)
+        full_path = session[self.id]['full_file_name']
         with open(full_path, "wb") as f:
             while True:
                 chunk = data.stream.read(chunk_size)
                 if len(chunk) == 0:
                     break
 
-                progress += 1
-                session[task_id]['progress'] = 100.0 * progress / chunks_count
                 f.write(chunk)
-                print(progress)
 
-    def save_file_by_chunks(self, data, path, name, session, task_id, file_length):
+    def save_file_by_chunks(self, data, session):
         return self._pool.green_submit(self.blocking_save_file_by_chunks,
-                                              data, path, name, session, task_id, file_length)
+                                       data, session)
+
+    def blocking_parse_file(self, session):
+        print "BBB"
+        try:
+            progress = 0
+            chunk_size = 2<<4 # need to select large chunks to
+                          # speedup file processing
+            results = []
+
+            file_name = session[self.id]['full_file_name']
+            file_size = os.path.getsize(file_name)
+            chunks_total = 1 + file_size / chunk_size
+
+            print "file name for parsing:", file_name
+            print "chunks total:", chunks_total
+
+            with open(file_name) as f:
+                # we need to slice large file to chunks to avoid
+                # RAM over ussage:
+                data = iter(lambda: f.read(chunk_size), '')
+
+                for chunk in data:
+                    chunk = chunk.replace('\n', '').replace('\r', '')
+                    results.append(len(chunk))
+
+                    progress += 1
+                    session[self.id]['progress'] = 100.0 * progress / chunks_total
+                    print "TTTTT", session
+                
+        except Exception as e:
+            print "%$$%$%%$%$%$!!", e
+
+        return sum(results)
+
+    def parse_file(self, session):
+        print "AAAA"
+        try:
+            return self._pool.green_submit(self.blocking_parse_file, session)
+        except Exception as e:
+            print e
 
     def listdir(self, path, fields):
         return self._pool.green_submit(self.blocking_listdir, path, fields).get()
@@ -137,7 +166,3 @@ class GreenTask(object):
                     yield chunk
                 else:
                     return
-
-    def save_file(self, file_, path, name):
-        self.status = "60%"
-        return self._pool.green_submit(self.blocking_save_file(file_, path, name))

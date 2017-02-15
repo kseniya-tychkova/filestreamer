@@ -11,7 +11,7 @@ from random import randint
 from task import GreenTask
 
 
-UPLOAD_FOLDER = "/home/xusha/dev/test"
+UPLOAD_FOLDER = "/tmp/"
 FINISHED = list()
 RUNNING = dict()
 
@@ -28,6 +28,7 @@ def files():
 
     if result is None:
         abort(404)
+
     return render_template('files.html', files=result)
 
 
@@ -36,6 +37,7 @@ def get_file(filename):
     unquoted_path = urllib.unquote(filename)
     global_path = UPLOAD_FOLDER
     mounted_path = os.path.join(global_path, unquoted_path)
+
     if not task.path_exists(mounted_path):
         raise abort(404)
 
@@ -49,51 +51,51 @@ def get_file(filename):
                 yield chunk
             else:
                 break
+
     response = Response(generate())
     response.headers['Content-Type'] ='application/octet-stream'
     response.headers['Content-Disposition'] = 'attachment; filename=' + urllib.quote(file_stat['name'])
     response.headers['Content-Length'] = file_stat['size']
     response.headers['Cache-Control'] = 'must-revalidate'
+
     return response
 
 
 def upload_file():
-    if request.method == 'GET':
-        task = GreenTask()
-        return render_template('upload_file.html', task_id=task.id)
     if request.method == 'POST':
-        data_file = request.files['file']
-        file_size = request.form.get("file-size")
-        task_id = request.form.get("task-id")
-        filename = secure_filename(data_file.filename)
 
-        task = GreenTask()
-        task.id = task_id
-        session[task.id] = {'progress': 0}
-
-        task.save_file_by_chunks(data_file, UPLOAD_FOLDER, filename,
-                                 session, task.id, file_size)
-        return redirect(url_for('status', task_id=task.id))
-
-        """
         if 'file' in request.files:
             data_file = request.files['file']
-            print data_file.filename
+
             if data_file.filename > '':
                 filename = secure_filename(data_file.filename)
+                full_file_name = os.path.join(UPLOAD_FOLDER, filename)
+
                 task = GreenTask()
-                task.blocking_save_file(data_file, UPLOAD_FOLDER, filename)
+                session[task.id] = {'full_file_name': full_file_name,
+                                    'progress': 0}
+
+                task.save_file_by_chunks(data_file, session)
+
+                print "Save file session", session
+
                 return redirect(url_for('status', task_id=task.id))
-        """
+
+    return render_template('upload_file.html')
 
 
 def status(task_id):
     if request.method == 'GET':
-        return render_template('status.html', task_id=task_id)
+        task = GreenTask()
+        task.id = task_id
+        result = task.parse_file(session).value
+        return render_template('status.html', task_id=task_id, result=result)
 
 
-def upload_file_progress(task_id):
-    progress = session.get(str(task_id), {}).get('progress', 0)
+def parsing_file_progress(task_id):
+    progress = session.get(task_id, {}).get('progress', 0)
+    print session
+    print "Progress:", progress
     return jsonify({'status': progress})
 
 
@@ -104,7 +106,7 @@ def create_app():
     app.add_url_rule('/download/<filename>', 'get_file', get_file)
     app.add_url_rule('/upload', 'upload_file', upload_file, methods=['GET', 'POST'])
     app.add_url_rule('/status/<task_id>', 'status', status)
-    app.add_url_rule('/progress/<task_id>', 'upload_file_progress', upload_file_progress)
+    app.add_url_rule('/progress/<task_id>', 'parsing_file_progress', parsing_file_progress)
     return app
 
 

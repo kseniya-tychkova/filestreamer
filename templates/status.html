@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title></title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.css') }}">
+
     <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
     <script>
         function getStatusHandler(data, task_id, status_url) {
@@ -14,15 +15,15 @@
             var block = $('#loading-block');
             var progress_div = $('#progress_div');
             if (data['status'] < 100) {
-                task_title.html('Task is in progress');
                 progress_bar.width(data['status'] + '%');
                 task_progress.html(data['status'] + '%');
                 setTimeout(function() {
                     getStatus(task_id, status_url);
-                }, 3000);
+                }, 100);
             }
             else {
                 task_title.html('Task is finished.');
+                task_message.html('Character count in this file: {{ result }}');
                 progress_bar.width(data['status'] + '%');
                 task_progress.html(data['status'] + '%');
             }
@@ -36,10 +37,11 @@
             }).success(function(data) {
                 getStatusHandler(data, task_id, status_url);
             }).error(function(data) {
-                alert('Error');
+                getStatusHandler(data, task_id, status_url);;
             });
         }
-        getStatus("{{task_id}}", "http://0.0.0.0:8080/progress/{{task_id}}")
+        //getStatus("{{task_id}}", "http://172.16.178.100:8080/progress/{{task_id}}")
+        getStatus("{{task_id}}", "{{ url_for('parsing_file_progress', task_id=task_id)}}")
     </script>
 </head>
 <body>
@@ -54,12 +56,12 @@
     <div class="row">
         <div class="col-md-4 col-md-offset-4 bg-info" style="border-radius: 5px; padding-bottom: 10px;">
             <div style="text-align: center;">
-                <h3 id="task_title">Upload</h3>
+                <h3 id="task_title"> Parsing the file... </h3>
             <div id='progress_div' class="progress progress-striped active">
-                <div id='progress_bar' class="progress-bar"  role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 30%"></div>
+                <div id='progress_bar' class="progress-bar"  role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
             </div>
-            <strong id="task_progress">30%</strong><br/>
-            <strong id="task_message">In progress</strong>
+            <strong id="task_progress">0%</strong><br/>
+            <strong id="task_message"></strong><br/>
         </div>
     </div>
 </div>
