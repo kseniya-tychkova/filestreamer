@@ -1,17 +1,16 @@
+import os
+import signal
+import urllib
+
 import gevent.pywsgi
 import gevent.pool
-import signal
-import os
-import urllib
-from flask import Flask, abort, redirect, render_template, request, Response, session, url_for, jsonify
+import flask
 from werkzeug.utils import secure_filename
-from uuid import uuid4
-from random import randint
 
 from task import GreenTask
 
 
-UPLOAD_FOLDER = "/tmp/"
+UPLOAD_FOLDER = "/home/xusha/dev/test/"
 FINISHED = list()
 RUNNING = dict()
 session = dict()
@@ -26,9 +25,9 @@ def files():
     result = task.listdir(unquoted_path, list(fields))
 
     if result is None:
-        abort(404)
+        flask.abort(404)
 
-    return render_template('files.html', files=result)
+    return flask.render_template('files.html', files=result)
 
 
 def get_file(filename):
@@ -37,7 +36,7 @@ def get_file(filename):
     full_path = os.path.join(UPLOAD_FOLDER, unquoted_path)
 
     if not task.path_exists(full_path):
-        abort(404)
+        flask.abort(404)
 
     file_stat = task.stat(full_path, ('name', 'size'))
     stream = task.stream_file(full_path)
@@ -50,7 +49,7 @@ def get_file(filename):
             else:
                 break
 
-    response = Response(generate())
+    response = flask.Response(generate())
     response.headers['Content-Type'] ='application/octet-stream'
     response.headers['Content-Disposition'] = 'attachment; filename=' + urllib.quote(file_stat['name'])
     response.headers['Content-Length'] = file_stat['size']
@@ -62,13 +61,13 @@ def get_file(filename):
 def upload_file():
     task = GreenTask()
 
-    if request.method == 'POST':
+    if flask.request.method == 'POST':
 
-        if 'task_id' in request.form:
-            task.id = request.form['task_id']
+        if 'task_id' in flask.request.form:
+            task.id = flask.request.form['task_id']
 
-        if 'file' in request.files:
-            data_file = request.files['file']
+        if 'file' in flask.request.files:
+            data_file = flask.request.files['file']
             if data_file.filename > '':
                 filename = secure_filename(data_file.filename)
                 full_file_name = os.path.join(UPLOAD_FOLDER, filename)
@@ -79,34 +78,34 @@ def upload_file():
 
                 task.save_file_by_chunks(data_file, session)
 
-    return render_template('upload_file.html', task_id=task.id)
+    return flask.render_template('upload_file.html', task_id=task.id)
 
 
 def status(task_id):
-    if request.method == 'GET':
+    if flask.request.method == 'GET':
         if task_id in session:
             result = ''
 
             task = GreenTask()
             task.id = task_id
 
-            # we need to run file parsing only once for each file
+            # run file parsing only once for each file
             if session[task.id]['parse_status'] is None:
-                result = task.parse_file(session).value
+                result = task.parse_file(session)
 
-            return render_template('status.html', task_id=task_id, result=result)
+            return flask.render_template('status.html', task_id=task_id, result=result)
 
     # if request has incorrect data:
-    return redirect('/')
+    return flask.redirect('/')
 
 
 def parsing_file_progress(task_id):
     progress = session.get(task_id, {}).get('progress', 0)
-    return jsonify({'status': progress})
+    return flask.jsonify({'status': progress})
 
 
 def create_app():
-    app = Flask(__name__)
+    app = flask.Flask(__name__)
     app.secret_key = "F12Zr47j\3yX R~X@H!jmM]Lwf/,?KT"
     app.add_url_rule('/', 'files', files)
     app.add_url_rule('/download/<filename>', 'get_file', get_file)

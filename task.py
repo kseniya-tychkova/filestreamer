@@ -1,13 +1,13 @@
-from concurrent import futures
 import ntpath
-import time
-import datetime as dt
+import os
 import stat
+import datetime as dt
+from uuid import uuid4
+
+from concurrent import futures
 import gevent.event
 import gevent.fileobject
 import gevent.local
-import os
-from uuid import uuid4
 
 
 class GreenTaskExecutor(futures.ThreadPoolExecutor):
@@ -104,7 +104,7 @@ class GreenTask(object):
         """ This function will create a separate thread to upload file. """
 
         return self._pool.green_submit(self.blocking_save_file_by_chunks,
-                                       data, session)
+                                       data, session).get()
 
     def blocking_parse_file(self, session):
         """ This function calculates the count of characters in file. """
@@ -133,7 +133,7 @@ class GreenTask(object):
     def parse_file(self, session):
         """ This function will run parsing of file in a separate thread. """
 
-        return self._pool.green_submit(self.blocking_parse_file, session)
+        return self._pool.green_submit(self.blocking_parse_file, session).get()
 
     def listdir(self, path, fields):
         return self._pool.green_submit(self.blocking_listdir, path, fields).get()

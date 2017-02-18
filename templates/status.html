@@ -37,41 +37,49 @@
             }).success(function(data) {
                 getStatusHandler(data, task_id, status_url);
             }).error(function(data) {
-                getStatusHandler(data, task_id, status_url);;
+                getStatusHandler(data, task_id, status_url);
             });
         }
-        getStatus("{{task_id}}", "{{ url_for('parsing_file_progress', task_id=task_id)}}")
+        getStatus("{{task_id}}", "{{ url_for('parsing_file_progress', task_id=task_id)}}");
     </script>
 </head>
 <body>
-<div class="jumbotron">
-    <div class="container">
-        <h1>Filestreamer</h1>
-        <p>This is a test file streamer application.</p>
-    </div>
-</div>
-
-<div class="container">
-    <div class="row">
-        <div class="col-md-4 col-md-offset-4 bg-info" style="border-radius: 5px; padding-bottom: 10px;">
-            <div style="text-align: center;">
-                <h3 id="task_title"> Parsing the file... </h3>
-            <div id='progress_div' class="progress progress-striped active">
-                <div id='progress_bar' class="progress-bar"  role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+              <a class="navbar-brand" href="#">Filestreamer</a>
             </div>
-            <strong id="task_progress">0%</strong><br/>
-            <strong id="task_message"></strong><br/>
+        </div>
+    </nav>
+    <div class="jumbotron">
+        <div class="container">
+            <h1> Filestreamer </h1>
+            <p> This is a test file streamer application. </p>
+            <div class="btn-group">
+                <a class="btn btn-lg btn-success" href="{{ url_for('files') }}">Browse files</a>
+                <a class="btn btn-lg btn-success" href="{{ url_for('upload_file') }}">Upload New File</a>
+            </div>
         </div>
     </div>
-
-    <br /><br />
-
-    <div class="col-md-4 col-md-offset-4" style="text-align: center; min-height:1px; margin-top:10px; margin-bottom:10px; position:relative;">
-        <a class="btn btn-success" href="{{ url_for('upload_file') }}">Upload New File</a>
-        <a class="btn btn-link" href="{{ url_for('files') }}">View All Files</a>
+    <div class="container">
+        <div class="row">
+            <div class="col-md-4 col-md-offset-4 bg-success" style="border-radius: 5px; padding-bottom: 10px;">
+                <div style="text-align: center;">
+                    <h3 id="task_title"> Parsing the file... </h3>
+                    <div id='progress_div' class="progress progress-striped active">
+                        <div id='progress_bar' class="progress-bar progress-bar-success" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                    </div>
+                    <strong id="task_progress">0%</strong><br/>
+                    <strong id="task_message"></strong><br/>
+                </div>
+            </div>
+        </div>
     </div>
-
-</div>
-</div>
 </body>
 </html>
