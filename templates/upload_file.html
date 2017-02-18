@@ -5,13 +5,14 @@
     <title>Filestreamer: upload the file</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.css') }}">
 
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
-    <script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+
+    <script type="text/javascript">
 
         // this function allows to handle file trasfer progress:
         function upload(file) {
-
             var xhr = new XMLHttpRequest();
+
             var int_progress = 0;
             var progress = '';
             var progress_bar = $('#progress_bar');
@@ -19,18 +20,32 @@
 
             var progress_view = $('#progress_view');
             var file_select_view = $('#file_select_view');
+
             progress_view.show();
             file_select_view.hide();
 
-            xhr.upload.onprogress = function(event) {
-                float_progress = 100.0 * event.loaded / event.total;
+            xhr.upload.onprogress = function (event) {
+                // event.loaded - part of file which was already sent to server
+                // event.total - total size of form data (+1 to avoid NaN value).
+                float_progress = 100.0 * event.loaded / (event.total + 1);
                 progress = Math.round(float_progress).toString() + '%';
+
                 progress_bar.width(progress);
                 task_progress.html(progress);
             };
 
-            xhr.open("POST", "upload", true);
-            xhr.send(file);
+            xhr.upload.onload = function () {
+                $(location).attr("href", "{{ url_for('status', task_id=task_id) }}");
+            };
+
+            console.log(xhr.upload);
+
+            var data = new FormData();
+            data.append('task_id', '{{ task_id }}');
+            data.append('file', file);
+
+            xhr.open("POST", "{{ url_for('upload_file') }}", true);
+            xhr.send(data);
         };
 
         // we should associate upload function with form submit action
@@ -57,9 +72,9 @@
                 form_title.html('<h3> You selected file: ' + f.files[0].name + '<h3>');
             });
 
-            $("#iform").on('submit', function(env) {
+            $("#upload_button").on('click', function(env) {
                 var f = document.getElementById('file');
-                upload(f.files[0])
+                upload(f.files[0]);
             });
         });
 
@@ -91,9 +106,10 @@
                         <label for="file" class="btn btn-primary">Select file for upload</label>
                     </div>
 
-                    <input type="submit" class="btn btn-primary" value="Upload File" id="upload_button">
+                    <input type="button" class="btn btn-primary" value="Upload File" id="upload_button">
 
                 </form>
+
             </div>
         </div>
 
@@ -102,15 +118,22 @@
                 <div style="text-align: center;">
                     <h3 id="task_title"> Uploading... </h3>
                     <div id='progress_div' class="progress progress-striped active">
-                        <div id='progress_bar' class="progress-bar"  role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
+                        <div id='progress_bar' class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 0%">
                         </div>
                     </div>
-
-                    <strong id="task_progress">0%</strong><br/>
+                    <strong id="task_progress">0%</strong>
                 </div>
             </div>
         </div>
 
+    </div>
+
+    <div class="container">
+         <div class="row" style="text-align: center;">
+            <div class="col-md-4 col-md-offset-4" style="border-radius: 5px; padding-bottom: 10px;">
+                <a class="btn btn-link" href="{{ url_for('files') }}">View All Files</a>
+            </div>
+        </div>
     </div>
 </body>
 </html>

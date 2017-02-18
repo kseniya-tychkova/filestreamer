@@ -11,6 +11,7 @@ from uuid import uuid4
 
 
 class GreenTaskExecutor(futures.ThreadPoolExecutor):
+    """ This class describes tasks executor. """
 
     @staticmethod
     def future_result_to_async_result(async_result, future):
@@ -31,22 +32,21 @@ class GreenTaskExecutor(futures.ThreadPoolExecutor):
         self.future_result_to_async_result(async_result, future)
         return async_result
 
-    def green_submit_nowait(self, fn, *args, **kwargs):
-        async_result = gevent.event.AsyncResult()
-        future = self.submit(fn, *args, **kwargs)
-        return async_result
-
 
 class GreenTask(object):
-    CHUNK_SIZE = 512 * 1024
+    """ This class allows to do all operations with files. """
 
     def __init__(self):
+        self.CHUNK_SIZE = 512 * 1024
         self.id = str(uuid4())
         self.status = None
+
         self._pool = GreenTaskExecutor(
             max_workers=10)
 
     def blocking_listdir(self, path, fields):
+        """ This function returns the list of files in the upload dir. """
+
         try:
             objects = os.listdir(path)
         except OSError:
@@ -56,8 +56,9 @@ class GreenTask(object):
                   for name in objects]
         return result
 
-    @staticmethod
-    def blocking_stat(path, fields):
+    def blocking_stat(self, path, fields):
+        """ This function returns the attributes of file. """
+
         head, tail = ntpath.split(path)
         name = tail or ntpath.basename(head)
         full_result = {'name': name}
@@ -82,65 +83,57 @@ class GreenTask(object):
             })
         return {field: full_result.get(field) for field in fields}
 
-    @staticmethod
-    def blocking_path_exists(path):
+    def blocking_path_exists(self, path):
         return os.path.exists(path)
 
     def blocking_save_file_by_chunks(self, data, session):
-        chunk_size = 2<<12
+        """ This function reads stream data and saves it to file. """
 
         full_path = session[self.id]['full_file_name']
+
         with open(full_path, "wb") as f:
             while True:
-                chunk = data.stream.read(chunk_size)
+                chunk = data.stream.read(self.CHUNK_SIZE)
+
                 if len(chunk) == 0:
                     break
 
                 f.write(chunk)
 
     def save_file_by_chunks(self, data, session):
+        """ This function will create a separate thread to upload file. """
+
         return self._pool.green_submit(self.blocking_save_file_by_chunks,
                                        data, session)
 
     def blocking_parse_file(self, session):
-        print "BBB"
-        try:
-            progress = 0
-            chunk_size = 2<<4 # need to select large chunks to
-                          # speedup file processing
-            results = []
+        """ This function calculates the count of characters in file. """
 
-            file_name = session[self.id]['full_file_name']
-            file_size = os.path.getsize(file_name)
-            chunks_total = 1 + file_size / chunk_size
+        progress = 0
+        results = []
 
-            print "file name for parsing:", file_name
-            print "chunks total:", chunks_total
+        file_name = session[self.id]['full_file_name']
+        file_size = os.path.getsize(file_name)
+        chunks_total = 1 + file_size / self.CHUNK_SIZE
 
-            with open(file_name) as f:
-                # we need to slice large file to chunks to avoid
-                # RAM over ussage:
-                data = iter(lambda: f.read(chunk_size), '')
+        with open(file_name) as f:
+            # we need to slice large file to chunks to avoid
+            # RAM over ussage:
+            data = iter(lambda: f.read(self.CHUNK_SIZE), '')
 
-                for chunk in data:
-                    chunk = chunk.replace('\n', '').replace('\r', '')
-                    results.append(len(chunk))
+            for chunk in data:
+                chunk = chunk.replace('\n', '').replace('\r', '')
+                results.append(len(chunk))
 
-                    progress += 1
-                    session[self.id]['progress'] = 100.0 * progress / chunks_total
-                    print "TTTTT", session
-                
-        except Exception as e:
-            print "%$$%$%%$%$%$!!", e
+                progress += 1
+                session[self.id]['progress'] = 100.0 * progress / chunks_total
 
         return sum(results)
 
     def parse_file(self, session):
-        print "AAAA"
-        try:
-            return self._pool.green_submit(self.blocking_parse_file, session)
-        except Exception as e:
-            print e
+        """ This function will run parsing of file in a separate thread. """
+
+        return self._pool.green_submit(self.blocking_parse_file, session)
 
     def listdir(self, path, fields):
         return self._pool.green_submit(self.blocking_listdir, path, fields).get()
@@ -152,13 +145,13 @@ class GreenTask(object):
         return self._pool.green_submit(self.blocking_path_exists, path).get()
 
     def stream_file(self, mounted_path):
+        """ This is a generator which returns large files in small chunks. """
+
         with open(mounted_path, 'rb') as fobj:
             stream = gevent.fileobject.FileObjectThread(fobj)
             while True:
                 try:
-                    start = time.time()
                     chunk = stream.read(self.CHUNK_SIZE)
-                    speed = 1. * len(chunk)/1024. / (time.time() - start)
                 except IOError as e:
                     return
                 if chunk:

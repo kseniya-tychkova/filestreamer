@@ -1,2 +1,6 @@
+virtualenv
+tox
+
 gevent
 flask
+futures

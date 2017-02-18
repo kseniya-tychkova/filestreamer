@@ -2,18 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title></title>
+    <title>Filestreamer</title>
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/bootstrap.css') }}">
 </head>
 <body>
 <div class="jumbotron">
     <div class="container">
-        <h1>Filestreamer</h1>
-        <p>This is a test file streamer application.</p>
+        <h1> Filestreamer </h1>
+        <p> This is a test file streamer application. </p>
     </div>
 </div>
 
 <div class="container">
+    <div class="col-lg-9" style="text-align: center;">
+        <a class="btn btn-lg btn-success" href="{{ url_for('upload_file') }}">Upload New File</a>
+    </div>
+
     <div class="row">
         <div class="col-lg-9">
             <table class="table table-striped table-hover">

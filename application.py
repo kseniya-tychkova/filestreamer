@@ -14,7 +14,6 @@ from task import GreenTask
 UPLOAD_FOLDER = "/tmp/"
 FINISHED = list()
 RUNNING = dict()
-
 session = dict()
 
 
@@ -34,15 +33,14 @@ def files():
 
 def get_file(filename):
     task = GreenTask()
-    unquoted_path = urllib.unquote(filename)
-    global_path = UPLOAD_FOLDER
-    mounted_path = os.path.join(global_path, unquoted_path)
+    unquoted_path = secure_filename(filename)
+    full_path = os.path.join(UPLOAD_FOLDER, unquoted_path)
 
-    if not task.path_exists(mounted_path):
-        raise abort(404)
+    if not task.path_exists(full_path):
+        abort(404)
 
-    file_stat = task.stat(mounted_path, ('name', 'size'))
-    stream = task.stream_file(mounted_path)
+    file_stat = task.stat(full_path, ('name', 'size'))
+    stream = task.stream_file(full_path)
 
     def generate():
         while True:
@@ -62,40 +60,48 @@ def get_file(filename):
 
 
 def upload_file():
+    task = GreenTask()
+
     if request.method == 'POST':
+
+        if 'task_id' in request.form:
+            task.id = request.form['task_id']
 
         if 'file' in request.files:
             data_file = request.files['file']
-
             if data_file.filename > '':
                 filename = secure_filename(data_file.filename)
                 full_file_name = os.path.join(UPLOAD_FOLDER, filename)
 
-                task = GreenTask()
                 session[task.id] = {'full_file_name': full_file_name,
-                                    'progress': 0}
+                                    'progress': 0,
+                                    'parse_status': None}
 
                 task.save_file_by_chunks(data_file, session)
 
-                print "Save file session", session
-
-                return redirect(url_for('status', task_id=task.id))
-
-    return render_template('upload_file.html')
+    return render_template('upload_file.html', task_id=task.id)
 
 
 def status(task_id):
     if request.method == 'GET':
-        task = GreenTask()
-        task.id = task_id
-        result = task.parse_file(session).value
-        return render_template('status.html', task_id=task_id, result=result)
+        if task_id in session:
+            result = ''
+
+            task = GreenTask()
+            task.id = task_id
+
+            # we need to run file parsing only once for each file
+            if session[task.id]['parse_status'] is None:
+                result = task.parse_file(session).value
+
+            return render_template('status.html', task_id=task_id, result=result)
+
+    # if request has incorrect data:
+    return redirect('/')
 
 
 def parsing_file_progress(task_id):
     progress = session.get(task_id, {}).get('progress', 0)
-    print session
-    print "Progress:", progress
     return jsonify({'status': progress})
 
 
@@ -124,8 +130,5 @@ def run():
     server.serve_forever()
 
 
-def main():
-    run()
-
 if __name__ == "__main__":
-    main()
+    run()
