@@ -1,0 +1,4 @@
+nose
+beautifulsoup4
+mock
+coverage

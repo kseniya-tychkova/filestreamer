@@ -12,22 +12,24 @@ To run the web application you should execute the following command:
 
 ```
   apt-get install python python-pip
-  tox -e start_filestreamer
+  pip install -r requirements.txt
+  python application.py
 ```
 
 How To Run Tests
 ================
 
-FileStreamer has unit and functional automated test cases.
+FileStreamer has unit automated test cases.
 
-To run unit tests you shoul execute the following command:
-
-```
-  tox -e unit_tests
-```
-
-To run functional tests you should execute the following command:
+To run unit tests you should execute the following command:
 
 ```
-  tox -e functional_tests
+  pip install -r test-requirements.txt
+  nosetests
+```
+
+To get information about the test coverage you can use the following command:
+
+```
+  nosetests --with-coverage --cover-package=filestreamer
 ```
