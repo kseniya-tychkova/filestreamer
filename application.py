@@ -10,7 +10,7 @@ from werkzeug.utils import secure_filename
 from task import GreenTask
 
 
-UPLOAD_FOLDER = "/home/xusha/dev/test/"
+UPLOAD_FOLDER = "/tmp/test/"
 FINISHED = list()
 RUNNING = dict()
 session = dict()

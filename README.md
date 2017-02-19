@@ -11,6 +11,7 @@ How To Run Application
 To run the web application you should execute the following command:
 
 ```
+  mkdir /tmp/test
   apt-get install python python-pip
   pip install -r requirements.txt
   python application.py
